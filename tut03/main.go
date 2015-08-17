@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"math"
 	"runtime"
+	"time"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -10,6 +12,7 @@ import (
 
 const floatSize = 4
 
+var curFade float32
 var vboTriangle, vboTriangleColors uint32
 var program uint32
 var attributeCoord2d, attributeVColor int32
@@ -44,23 +47,19 @@ func initResources() uint32 {
 	gl.BindBuffer(gl.ARRAY_BUFFER, vboTriangle)
 	gl.BufferData(gl.ARRAY_BUFFER, floatSize*len(triangleAttributes), gl.Ptr(triangleAttributes), gl.STATIC_DRAW)
 
-	attribName := "coord2d\x00"
-	attributeCoord2d = gl.GetAttribLocation(program, gl.Str(attribName))
+	attributeCoord2d = gl.GetAttribLocation(program, gl.Str("coord2d\x00"))
 	if attributeCoord2d == -1 {
 		log.Fatal("failed to bind attribute")
 	}
 
-	colorName := "v_color\x00"
-	attributeVColor = gl.GetAttribLocation(program, gl.Str(colorName))
+	attributeVColor = gl.GetAttribLocation(program, gl.Str("v_color\x00"))
 	if attributeVColor == -1 {
-		log.Fatalf("could not bind attribute %#v", colorName)
-
+		log.Fatal("could not bind attribute v_color")
 	}
 
-	uniformName := "fade\x00"
-	uniformFade = gl.GetUniformLocation(program, gl.Str(uniformName))
+	uniformFade = gl.GetUniformLocation(program, gl.Str("fade\x00"))
 	if uniformFade == -1 {
-		log.Fatal("could not bind uniform %#v", uniformName)
+		log.Fatal("could not bind uniform fade")
 	}
 
 	return program
@@ -74,6 +73,7 @@ func onDisplay(program uint32) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	gl.UseProgram(program)
+	gl.Uniform1f(uniformFade, curFade)
 
 	gl.EnableVertexAttribArray(coords)
 	gl.EnableVertexAttribArray(vcolor)
@@ -81,12 +81,10 @@ func onDisplay(program uint32) {
 	gl.VertexAttribPointer(coords, 2, gl.FLOAT, false, 5*floatSize, nil)
 	gl.VertexAttribPointer(vcolor, 3, gl.FLOAT, false, 5*floatSize, gl.PtrOffset(2*floatSize))
 
-	gl.Uniform1f(uniformFade, 0.1)
 	gl.DrawArrays(gl.TRIANGLES, 0, 3)
 
 	gl.DisableVertexAttribArray(vcolor)
 	gl.DisableVertexAttribArray(coords)
-
 }
 
 func main() {
@@ -108,10 +106,13 @@ func main() {
 		panic(err)
 	}
 
+	t0 := time.Now()
 	program := initResources()
 	for {
+		curFade = float32(math.Sin(time.Now().Sub(t0).Seconds()*2*math.Pi/5)/2 + 0.5)
 		onDisplay(program)
 		window.SwapBuffers()
+		glfw.PollEvents()
 	}
 
 	gl.DeleteProgram(program)
