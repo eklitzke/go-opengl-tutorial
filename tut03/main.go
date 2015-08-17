@@ -73,6 +73,8 @@ func onDisplay(program uint32) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	gl.UseProgram(program)
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.Uniform1f(uniformFade, curFade)
 
 	gl.EnableVertexAttribArray(coords)
